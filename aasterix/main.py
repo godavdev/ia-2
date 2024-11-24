@@ -2,9 +2,9 @@
     A asterix algorithm implementation
 """
 
-from typing import List
-import pygame
 from math import sqrt
+from typing import List, Tuple
+import pygame
 
 # Configuraciones iniciales
 ANCHO_VENTANA = 800
@@ -22,6 +22,8 @@ PURPURA = (128, 0, 128)
 
 
 class Nodo:
+    """Nodo docstring"""
+
     def __init__(
         self,
         fila: int,
@@ -36,34 +38,44 @@ class Nodo:
         self.ancho = ancho
 
     def get_pos(self):
+        """get_pos docstring"""
         return self.fila, self.col
 
     def es_pared(self):
+        """es_pared docstring"""
         return self.color == NEGRO
 
     def es_inicio(self):
+        """es_inicio docstring"""
         return self.color == NARANJA
 
     def es_fin(self):
+        """es_fin docstring"""
         return self.color == PURPURA
 
     def restablecer(self):
+        """restablecer docstring"""
         self.color = BLANCO
 
     def hacer_inicio(self):
+        """hacer_inicio docstring"""
         self.color = NARANJA
 
     def hacer_pared(self):
+        """hacer_pared docstring"""
         self.color = NEGRO
 
     def hacer_fin(self):
+        """hacer_fin docstring"""
         self.color = PURPURA
 
-    def dibujar(self, ventana):
+    def dibujar(self, ventana: pygame.Surface):
+        """dibujar docstring"""
         pygame.draw.rect(ventana, self.color, (self.x, self.y, self.ancho, self.ancho))
 
 
 def crear_grid(filas: int, ancho: float) -> List[List[Nodo]]:
+    """crear_grid docstring"""
     grid = []
     ancho_nodo = ancho // filas
     for i in range(filas):
@@ -75,6 +87,7 @@ def crear_grid(filas: int, ancho: float) -> List[List[Nodo]]:
 
 
 def dibujar_grid(ventana: pygame.Surface, filas: int, ancho: float):
+    """dibujar_grid docstring"""
     ancho_nodo = ancho // filas
     for i in range(filas):
         pygame.draw.line(ventana, GRIS, (0, i * ancho_nodo), (ancho, i * ancho_nodo))
@@ -85,6 +98,7 @@ def dibujar_grid(ventana: pygame.Surface, filas: int, ancho: float):
 
 
 def dibujar(ventana: pygame.Surface, grid: List[List[Nodo]], filas: int, ancho: float):
+    """dibujar docstring"""
     ventana.fill(BLANCO)
     for fila in grid:
         for nodo in fila:
@@ -94,7 +108,8 @@ def dibujar(ventana: pygame.Surface, grid: List[List[Nodo]], filas: int, ancho: 
     pygame.display.update()
 
 
-def obtener_click_pos(pos, filas, ancho):
+def obtener_click_pos(pos: Tuple[int, int], filas: int, ancho: float):
+    """obtener_click_pos docstring"""
     ancho_nodo = ancho // filas
     y, x = pos
     fila = y // ancho_nodo
@@ -102,25 +117,29 @@ def obtener_click_pos(pos, filas, ancho):
     return fila, col
 
 
-def heuristica_manhattan(nodo1, nodo2):
+def heuristica_manhattan(nodo1: Nodo, nodo2: Nodo):
+    """heuristica_manhattan docstring"""
     x1, y1 = nodo1.get_pos()
     x2, y2 = nodo2.get_pos()
     return abs(x1 - x2) + abs(y1 - y2)
 
 
-def heuristica_euclidiana(nodo1, nodo2):
+def heuristica_euclidiana(nodo1: Nodo, nodo2: Nodo):
+    """heuristica_euclidiana docstring"""
     x1, y1 = nodo1.get_pos()
     x2, y2 = nodo2.get_pos()
     return sqrt((x1 - x2) ** 2) + ((y1 - y2) ** 2)
 
 
-def a_asterisco(inicio: Nodo, fin: Nodo, grid):
+def a_asterisco(inicio: Nodo, fin: Nodo, grid: List[List[Nodo]]):
+    """a_asterisco docstring"""
     open_set: List[Nodo] = []
     open_set.append(inicio)
 
 
 def main(ventana, ancho):
-    FILAS = 10
+    """main docstring"""
+    const FILAS = 10
     grid = crear_grid(FILAS, ancho)
 
     inicio = None

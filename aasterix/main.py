@@ -2,7 +2,9 @@
     A asterix algorithm implementation
 """
 
+from typing import List
 import pygame
+from math import sqrt
 
 # Configuraciones iniciales
 ANCHO_VENTANA = 800
@@ -20,14 +22,18 @@ PURPURA = (128, 0, 128)
 
 
 class Nodo:
-    def __init__(self, fila, col, ancho, total_filas):
+    def __init__(
+        self,
+        fila: int,
+        col: int,
+        ancho: float,
+    ):
         self.fila = fila
         self.col = col
         self.x = fila * ancho
         self.y = col * ancho
         self.color = BLANCO
         self.ancho = ancho
-        self.total_filas = total_filas
 
     def get_pos(self):
         return self.fila, self.col
@@ -57,18 +63,18 @@ class Nodo:
         pygame.draw.rect(ventana, self.color, (self.x, self.y, self.ancho, self.ancho))
 
 
-def crear_grid(filas, ancho):
+def crear_grid(filas: int, ancho: float) -> List[List[Nodo]]:
     grid = []
     ancho_nodo = ancho // filas
     for i in range(filas):
         grid.append([])
         for j in range(filas):
-            nodo = Nodo(i, j, ancho_nodo, filas)
+            nodo = Nodo(i, j, ancho_nodo)
             grid[i].append(nodo)
     return grid
 
 
-def dibujar_grid(ventana, filas, ancho):
+def dibujar_grid(ventana: pygame.Surface, filas: int, ancho: float):
     ancho_nodo = ancho // filas
     for i in range(filas):
         pygame.draw.line(ventana, GRIS, (0, i * ancho_nodo), (ancho, i * ancho_nodo))
@@ -78,7 +84,7 @@ def dibujar_grid(ventana, filas, ancho):
             )
 
 
-def dibujar(ventana, grid, filas, ancho):
+def dibujar(ventana: pygame.Surface, grid: List[List[Nodo]], filas: int, ancho: float):
     ventana.fill(BLANCO)
     for fila in grid:
         for nodo in fila:
@@ -94,6 +100,23 @@ def obtener_click_pos(pos, filas, ancho):
     fila = y // ancho_nodo
     col = x // ancho_nodo
     return fila, col
+
+
+def heuristica_manhattan(nodo1, nodo2):
+    x1, y1 = nodo1.get_pos()
+    x2, y2 = nodo2.get_pos()
+    return abs(x1 - x2) + abs(y1 - y2)
+
+
+def heuristica_euclidiana(nodo1, nodo2):
+    x1, y1 = nodo1.get_pos()
+    x2, y2 = nodo2.get_pos()
+    return sqrt((x1 - x2) ** 2) + ((y1 - y2) ** 2)
+
+
+def a_asterisco(inicio: Nodo, fin: Nodo, grid):
+    open_set: List[Nodo] = []
+    open_set.append(inicio)
 
 
 def main(ventana, ancho):

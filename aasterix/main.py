@@ -3,22 +3,25 @@
 """
 
 from math import sqrt
-from typing import List, Tuple
+from queue import PriorityQueue
+import time
+from typing import Callable, Dict, List, Tuple
 import pygame
 
 # Configuraciones iniciales
 ANCHO_VENTANA = 800
 VENTANA = pygame.display.set_mode((ANCHO_VENTANA, ANCHO_VENTANA))
 pygame.display.set_caption("Visualización de Nodos")
-
+pygame.font.init()
 # Colores (RGB)
 BLANCO = (255, 255, 255)
 NEGRO = (0, 0, 0)
 GRIS = (128, 128, 128)
-VERDE = (0, 255, 0)
-ROJO = (255, 0, 0)
+VERDE = (95, 242, 75)
+ROJO = (255, 66, 95)
 NARANJA = (255, 165, 0)
 PURPURA = (128, 0, 128)
+AZUL = (51, 85, 255)
 
 
 class Nodo:
@@ -36,6 +39,7 @@ class Nodo:
         self.y = col * ancho
         self.color = BLANCO
         self.ancho = ancho
+        self.vecinos: List[Nodo] = []
 
     def get_pos(self):
         """get_pos docstring"""
@@ -55,6 +59,7 @@ class Nodo:
 
     def restablecer(self):
         """restablecer docstring"""
+        self.vecinos = []
         self.color = BLANCO
 
     def hacer_inicio(self):
@@ -69,9 +74,39 @@ class Nodo:
         """hacer_fin docstring"""
         self.color = PURPURA
 
+    def hacer_cerrado(self):
+        """hacer_cerrado docstring"""
+        self.color = ROJO
+
+    def hacer_abierto(self):
+        """hacer_abierto docstring"""
+        self.color = VERDE
+
+    def hacer_camino(self):
+        """hacer_camino docstring"""
+        self.color = AZUL
+
     def dibujar(self, ventana: pygame.Surface):
         """dibujar docstring"""
         pygame.draw.rect(ventana, self.color, (self.x, self.y, self.ancho, self.ancho))
+
+    def inicializar_vecinos(self, grid: List[List["Nodo"]], filas: int):
+        """inicializar_vecinos docstring"""
+        # Inicializar arriba
+        if self.fila > 0 and not grid[self.fila - 1][self.col].es_pared():
+            self.vecinos.append(grid[self.fila - 1][self.col])
+
+        # Inicializar abajo
+        if self.fila < filas - 1 and not grid[self.fila + 1][self.col].es_pared():
+            self.vecinos.append(grid[self.fila + 1][self.col])
+
+        # Inicializar izq
+        if self.col > 0 and not grid[self.fila][self.col - 1].es_pared():
+            self.vecinos.append(grid[self.fila][self.col - 1])
+
+        # Inicializar derecha
+        if self.col < filas - 1 and not grid[self.fila][self.col + 1].es_pared():
+            self.vecinos.append(grid[self.fila][self.col + 1])
 
 
 def crear_grid(filas: int, ancho: float) -> List[List[Nodo]]:
@@ -117,29 +152,120 @@ def obtener_click_pos(pos: Tuple[int, int], filas: int, ancho: float):
     return fila, col
 
 
-def heuristica_manhattan(nodo1: Nodo, nodo2: Nodo):
+def heuristica_manhattan(tuple1: Tuple[int, int], tuple2: Tuple[int, int]):
     """heuristica_manhattan docstring"""
-    x1, y1 = nodo1.get_pos()
-    x2, y2 = nodo2.get_pos()
+    x1, y1 = tuple1
+    x2, y2 = tuple2
     return abs(x1 - x2) + abs(y1 - y2)
 
 
-def heuristica_euclidiana(nodo1: Nodo, nodo2: Nodo):
+def heuristica_euclidiana(tuple1: Tuple[int, int], tuple2: Tuple[int, int]):
     """heuristica_euclidiana docstring"""
-    x1, y1 = nodo1.get_pos()
-    x2, y2 = nodo2.get_pos()
+    x1, y1 = tuple1
+    x2, y2 = tuple2
     return sqrt((x1 - x2) ** 2) + ((y1 - y2) ** 2)
 
 
-def a_asterisco(inicio: Nodo, fin: Nodo, grid: List[List[Nodo]]):
+def reconstruir_camino(
+    came_from: Dict[Nodo, Nodo], actual: Nodo, dibujar_v: Callable[[], None]
+):
+    """reconstruir_camino docstring"""
+    while actual in came_from:
+        actual = came_from[actual]
+        actual.hacer_camino()
+        dibujar_v()
+
+
+def mostrar_mensaje(ventana: pygame.Surface, mensaje: str):
+    """mostrar_mensaje docstring"""
+    fuente = pygame.font.Font(None, 50)
+    texto = fuente.render(mensaje, True, BLANCO)
+    rect_texto = texto.get_rect(center=(ANCHO_VENTANA // 2, ANCHO_VENTANA // 2))
+
+    pygame.draw.rect(ventana, NEGRO, rect_texto.inflate(20, 20))
+    ventana.blit(texto, rect_texto)
+    pygame.display.update()
+
+    # Para que se alcance a ver
+    time.sleep(2)
+
+
+def a_asterisco(
+    inicio: Nodo, fin: Nodo, grid: List[List[Nodo]], dibujar_v: Callable[[], None]
+):
     """a_asterisco docstring"""
-    open_set: List[Nodo] = []
-    open_set.append(inicio)
+
+    # Posición en la cola del nodo
+    count = 0
+
+    # Cola de prioridad
+    open_set: PriorityQueue[Tuple[float, int, Nodo]] = PriorityQueue()
+
+    # Orden de los nodos
+    came_from: Dict[Nodo, Nodo] = {}
+
+    # Inicialización de los costos de g
+    g_score = {nodo: float("inf") for fila in grid for nodo in fila}
+
+    # Inicialización de los costos de f
+    f_score = {nodo: float("inf") for fila in grid for nodo in fila}
+
+    # Inicialización del diccionario de nodos
+    open_set_hash = {inicio}
+
+    # Inicialización del primer nodo
+    open_set.put((0, count, inicio))
+    g_score[inicio] = 0
+    f_score[inicio] = heuristica_manhattan(inicio.get_pos(), fin.get_pos())
+
+    while not open_set.empty():
+
+        # Obtenemos el nodo actual segun la cola de prioridad
+        current = open_set.get()[2]
+        # Lo eliminamos del diccionario
+        open_set_hash.remove(current)
+
+        # Si llegamos al final, reconstruimos el camino
+        if current == fin:
+            fin.hacer_fin()
+            reconstruir_camino(came_from, fin, dibujar_v)
+            inicio.hacer_inicio()
+            mostrar_mensaje(VENTANA, "Se encontró el camino")
+            return True
+
+        # Iteramos sobre los vecinos
+        for vecino in current.vecinos:
+            # Nuevo costo de g
+            tentative_g_score = g_score[current] + 1
+
+            # Si el costo es menor, actualizamos los valores
+            if tentative_g_score < g_score[vecino]:
+                came_from[vecino] = current
+                g_score[vecino] = tentative_g_score
+                f_score[vecino] = g_score[vecino] + heuristica_manhattan(
+                    vecino.get_pos(), fin.get_pos()
+                )
+                if vecino not in open_set_hash:
+                    count += 1
+                    open_set.put((f_score[vecino], count, vecino))
+                    open_set_hash.add(vecino)
+                    vecino.hacer_abierto()
+
+        # Dibujamos
+        dibujar_v()
+
+        # Relentizar la ejecución
+        time.sleep(0.1)
+        if current != inicio:
+            current.hacer_cerrado()
+
+    mostrar_mensaje(VENTANA, "No se encontró el camino")
+    return False
 
 
 def main(ventana, ancho):
     """main docstring"""
-    const FILAS = 10
+    FILAS = 10
     grid = crear_grid(FILAS, ancho)
 
     inicio = None
@@ -150,7 +276,11 @@ def main(ventana, ancho):
     while corriendo:
         dibujar(ventana, grid, FILAS, ancho)
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if (
+                event.type == pygame.QUIT
+                or event.type == pygame.KEYDOWN
+                and event.key == pygame.K_ESCAPE
+            ):
                 corriendo = False
 
             if pygame.mouse.get_pressed()[0]:  # Click izquierdo
@@ -177,6 +307,26 @@ def main(ventana, ancho):
                     inicio = None
                 elif nodo == fin:
                     fin = None
+
+            if event.type == pygame.KEYDOWN:
+                # Reiniciar pa rapido
+                if event.key == pygame.K_r:
+                    for fila in grid:
+                        for nodo in fila:
+                            nodo.restablecer()
+                    inicio = None
+                    fin = None
+
+                if event.key == pygame.K_SPACE:
+                    # Inicializar vecinos
+                    for fila in grid:
+                        for nodo in fila:
+                            nodo.inicializar_vecinos(grid, FILAS)
+
+                    # Ejecutar el algoritmo
+                    a_asterisco(
+                        inicio, fin, grid, lambda: dibujar(ventana, grid, FILAS, ancho)
+                    )
 
     pygame.quit()
 

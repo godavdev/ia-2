@@ -1,0 +1,5 @@
+*.mp4
+cnn/data/images
+cnn/data/videos
+yolov8l.pt
+yolov8n.pt

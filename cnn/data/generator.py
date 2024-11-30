@@ -3,7 +3,7 @@ from typing import Dict, List
 from ultralytics import YOLO
 import cv2
 
-VIDEOS_DIR = "cnn/data/videos"
+VIDEOS_DIR = "cnn/data/downloads/videos"
 IMAGES_DIR = "cnn/data/images"
 
 cars_dict: Dict[str, List[str]] = {}
@@ -17,12 +17,12 @@ for car in cars:
 model = YOLO("cnn/data/yolov8l.pt", verbose=False)
 names = model.names
 DIMENSIONS = (80, 80)
-FRAME_INTERVAL = 200
+FRAME_INTERVAL = 10
 
 for car, videos in cars_dict.items():
+    # input(f"Presiona enter para procesar {car}")
     for video in videos:
-        print(f"Processing video {video} for {car}")
-        cap = cv2.VideoCapture(f"cnn/data/videos/{car}/{video}")
+        cap = cv2.VideoCapture(f"{VIDEOS_DIR}/{car}/{video}")
         i = 0
         frame_count = 0
         while cap.isOpened():
@@ -51,6 +51,7 @@ for car, videos in cars_dict.items():
                     cv2.imshow("Cropped", resized)
                     cv2.imwrite(f"cnn/data/images/{car}/{i}.jpg", resized)
                     i += 1
+                    print(f"Teoricamente se han guardado: {i} imagenes")
             cv2.imshow("Frame", frame)
             cv2.waitKey(1)
         print("Finished")

@@ -1,5 +1,6 @@
 *.mp4
 cnn/data/images
 cnn/data/videos
+cnn/data/downloads
 yolov8l.pt
 yolov8n.pt

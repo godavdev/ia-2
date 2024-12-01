@@ -3,6 +3,7 @@ from typing import Dict, List
 from ultralytics import YOLO
 import cv2
 
+
 VIDEOS_DIR = "cnn/data/downloads/videos"
 IMAGES_DIR = "cnn/data/images"
 

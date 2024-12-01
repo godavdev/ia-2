@@ -4,29 +4,30 @@ from bing_image_downloader import downloader
 PATH = "cnn/data/downloads/images"
 
 SEARCHS = {
-    "Mazda 3 2010 Sedan exterior": "mazda3",
-    "BYD Dolphin 2024 exterior": "dolphin",
-    "Pagani huayra codalunga exterior": "pagani",
-    "Volkswagen Combi exterior": "combi",
-    "Toyota GR Supra 2025 exterior": "supra",
+    # "mazda3": "Mazda 3 2010 Sedan",
+    # "tsuru": "Nissan Tsuru 1993",
+    "vocho": "Volskwagen Sedan Vocho",
+    "miata": "Mazda Miata 1990",
+    "mini": "Mini cooper",
 }
+
 # Descargar imagenes de bing
-for query, car in SEARCHS.items():
+for car, query in SEARCHS.items():
     downloader.download(
         query,
         limit=1000,
-        # filter="photo",
         output_dir=f"{PATH}",
+        # filter="photo",
         adult_filter_off=True,
         force_replace=True,
-        timeout=60,
+        timeout=5,
         verbose=True,
     )
 
 # Renombrar directorios
-cars = os.listdir(PATH)
-for car in cars:
-    os.rename(f"{PATH}/{car}", f"{PATH}/{SEARCHS[car]}")
+for car, query in SEARCHS.items():
+    os.rename(f"{PATH}/{query}", f"{PATH}/{car}")
+
 
 # Renombrar imagenes
 cars = os.listdir(PATH)

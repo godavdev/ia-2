@@ -245,8 +245,8 @@ def reiniciar_juego():
     # print("Datos recopilados para el modelo: ", datos_modelo)
     mostrar_menu()  # Mostrar el menú de nuevo para seleccionar modo
 
-
-def predict_play(model: Literal["nn", "bt"] = "nn"):
+# Funcion para predecir si es que va a saltar
+def predict_jump(model: Literal["nn", "bt"] = "nn"):
     global jugador, bala, velocidad_bala, nn_model
     distancia = abs(jugador.x - bala.x)
     formatted = np.array([[velocidad_bala, distancia]])
@@ -291,7 +291,7 @@ def main():
                 guardar_datos()
             # Modo automático: el salto se activa automáticamente
             if modo_auto:
-                if predict_play("bt"):
+                if predict_jump("bt"):
                     salto = True
                     en_suelo = False
                 if salto:

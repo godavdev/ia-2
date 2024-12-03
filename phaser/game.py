@@ -5,7 +5,6 @@
 # pylint: disable=global-variable-not-assigned
 # pylint: disable=global-statement
 import random
-from typing import Literal
 import pygame
 import pandas as pd
 import numpy as np
@@ -84,8 +83,9 @@ fondo_x1 = 0
 fondo_x2 = w
 
 # Cargar modelos
-nn_model: Sequential = load_model("phaser/model/model.h5")
-bt_model: DecisionTreeClassifier = joblib.load("phaser/model/model.joblib")
+nn_model: Sequential = load_model("phaser/model/nnmodel.h5")
+dt_model: DecisionTreeClassifier = joblib.load("phaser/model/dtmodel.joblib")
+selected_model = None
 
 
 # Función para disparar la bala
@@ -189,12 +189,15 @@ def pausa_juego():
 
 # Función para mostrar el menú y seleccionar el modo de juego
 def mostrar_menu():
-    global menu_activo, modo_auto
+    global menu_activo, modo_auto, selected_model
     pantalla.fill(NEGRO)
     texto = fuente.render(
-        "Presiona 'A' para Auto, 'M' para Manual, o 'Q' para Salir", True, BLANCO
+        "Presiona 'N' para Red, 'T' para Arbol, 'M' para Manual, o 'Q' para Salir",
+        True,
+        BLANCO,
     )
-    pantalla.blit(texto, (w // 4, h // 2))
+    texto_rect = texto.get_rect(center=(w // 2, h // 2))
+    pantalla.blit(texto, texto_rect)
     pygame.display.flip()
 
     while menu_activo:
@@ -203,7 +206,8 @@ def mostrar_menu():
                 pygame.quit()
                 exit()
             if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_a:
+                if evento.key == pygame.K_n or evento.key == pygame.K_t:
+                    selected_model = "nn" if evento.key == pygame.K_n else "dt"
                     modo_auto = True
                     menu_activo = False
                 elif evento.key == pygame.K_m:
@@ -245,22 +249,23 @@ def reiniciar_juego():
     # print("Datos recopilados para el modelo: ", datos_modelo)
     mostrar_menu()  # Mostrar el menú de nuevo para seleccionar modo
 
+
 # Funcion para predecir si es que va a saltar
-def predict_jump(model: Literal["nn", "bt"] = "nn"):
-    global jugador, bala, velocidad_bala, nn_model
+def predict_jump():
+    global jugador, bala, velocidad_bala, nn_model, dt_model, selected_model
     distancia = abs(jugador.x - bala.x)
     formatted = np.array([[velocidad_bala, distancia]])
-    if model == "nn":
+    if selected_model == "nn":
         res = nn_model.predict(formatted, verbose=0)[0][0]
         rounded = int(np.round(res))
         return True if rounded == 1 else False
-    if model == "bt":
-        res = bt_model.predict(formatted)[0]
+    if selected_model == "dt":
+        res = dt_model.predict(formatted)[0]
         return True if res == 1 else False
 
 
 def main():
-    global salto, en_suelo, bala_disparada
+    global salto, en_suelo, bala_disparada, model
     load_data()  # Cargar los datos del juego
     reloj = pygame.time.Clock()
     mostrar_menu()  # Mostrar el menú al inicio
@@ -281,6 +286,8 @@ def main():
                 if evento.key == pygame.K_q:  # Presiona 'q' para terminar el juego
                     pygame.quit()
                     exit()
+                if evento.key == pygame.K_r:
+                    reiniciar_juego()
 
         if not pausa:
             # Modo manual: el jugador controla el salto
@@ -291,7 +298,7 @@ def main():
                 guardar_datos()
             # Modo automático: el salto se activa automáticamente
             if modo_auto:
-                if predict_jump("bt"):
+                if predict_jump():
                     salto = True
                     en_suelo = False
                 if salto:

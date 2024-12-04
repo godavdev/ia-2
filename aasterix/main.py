@@ -11,6 +11,7 @@ pygame.init()
 # Reloj
 clock = pygame.time.Clock()
 FPS = 60
+STEPS_PER_SECOND = 5
 
 # Configuraciones iniciales
 ANCHO_VENTANA = 800

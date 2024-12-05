@@ -8,8 +8,8 @@ import random
 import pygame
 import pandas as pd
 import numpy as np
-from keras._tf_keras.keras.models import load_model
-from keras._tf_keras.keras.models import Sequential
+from keras._tf_keras.keras.models import Sequential, load_model
+from keras._tf_keras.keras.layers import Dense
 import joblib
 from sklearn.tree import DecisionTreeClassifier
 
@@ -82,10 +82,34 @@ bala_disparada = False
 fondo_x1 = 0
 fondo_x2 = w
 
-# Cargar modelos
-nn_model: Sequential = load_model("phaser/model/nnmodel.h5")
-dt_model: DecisionTreeClassifier = joblib.load("phaser/model/dtmodel.joblib")
 selected_model = None
+
+# Inicialización de NN
+nn_model = Sequential(
+    [
+        Dense(4, input_dim=2, activation="relu"),
+        Dense(1, activation="sigmoid"),
+    ]
+)
+nn_model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
+
+
+def train_nn():
+    global nn_model, datos_modelo
+    X = np.array([x[:2] for x in datos_modelo])
+    y = np.array([x[2] for x in datos_modelo])
+    nn_model.fit(X, y, epochs=1000, batch_size=1, verbose=1)
+
+
+# Inicialización de Árbol de Decisión
+dt_model = DecisionTreeClassifier(random_state=42, max_depth=1)
+
+
+def train_dt():
+    global dt_model, datos_modelo
+    X = np.array([x[:2] for x in datos_modelo])
+    y = np.array([x[2] for x in datos_modelo])
+    dt_model.fit(X, y)
 
 
 # Función para disparar la bala
@@ -189,10 +213,16 @@ def pausa_juego():
 
 # Función para mostrar el menú y seleccionar el modo de juego
 def mostrar_menu():
-    global menu_activo, modo_auto, selected_model
+    global menu_activo, modo_auto, selected_model, datos_modelo
     pantalla.fill(NEGRO)
+    has_data = len(datos_modelo) > 0
+    txt = (
+        "Presiona 'M' para Manual, o 'Q' para Salir"
+        if has_data
+        else "Presiona 'N' para Red, 'T' para Arbol, 'M' para Manual, o 'Q' para Salir"
+    )
     texto = fuente.render(
-        "Presiona 'N' para Red, 'T' para Arbol, 'M' para Manual, o 'Q' para Salir",
+        txt,
         True,
         BLANCO,
     )
@@ -206,11 +236,18 @@ def mostrar_menu():
                 pygame.quit()
                 exit()
             if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_n or evento.key == pygame.K_t:
-                    selected_model = "nn" if evento.key == pygame.K_n else "dt"
+                if has_data and (evento.key == pygame.K_n or evento.key == pygame.K_t):
+                    if evento.key == pygame.K_n:
+                        train_nn()
+                        selected_model = "nn"
+                    else:
+                        train_dt()
+                        selected_model = "dt"
+                    # selected_model = "nn" if evento.key == pygame.K_n else "dt"
                     modo_auto = True
                     menu_activo = False
                 elif evento.key == pygame.K_m:
+                    datos_modelo.clear()
                     modo_auto = False
                     menu_activo = False
                 elif evento.key == pygame.K_q:
@@ -265,8 +302,8 @@ def predict_jump():
 
 
 def main():
-    global salto, en_suelo, bala_disparada, model
-    load_data()  # Cargar los datos del juego
+    global salto, en_suelo, bala_disparada
+    # load_data()  # Cargar los datos del juego
     reloj = pygame.time.Clock()
     mostrar_menu()  # Mostrar el menú al inicio
     correr = True

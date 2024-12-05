@@ -3,7 +3,7 @@
 from math import sqrt
 from queue import PriorityQueue
 import time
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Set, Tuple
 import pygame
 
 pygame.init()
@@ -11,7 +11,7 @@ pygame.init()
 # Reloj
 clock = pygame.time.Clock()
 FPS = 60
-STEPS_PER_SECOND = 5
+STEPS_PER_SECOND = 3
 
 # Configuraciones iniciales
 ANCHO_VENTANA = 800
@@ -205,12 +205,10 @@ class Message:
                     center=(ANCHO_VENTANA // 2, ANCHO_VENTANA // 2)
                 )
                 pygame.draw.rect(ventana, NEGRO, rect_texto.inflate(20, 20))
+                ventana.blit(texto, rect_texto)
             else:
                 self.shown = False
 
-class Juego:
-    def __init__(self):
-        
 
 def obtener_click_pos(pos: Tuple[int, int], filas: int, ancho: float):
     ancho_nodo = ancho // filas
@@ -232,32 +230,30 @@ def heuristica_euclidiana(tuple1: Tuple[int, int], tuple2: Tuple[int, int]):
     return sqrt((x1 - x2) ** 2) + ((y1 - y2) ** 2)
 
 
-def reconstruir_camino(
-    came_from: Dict[Nodo, Nodo], actual: Nodo, dibujar_v: Callable[[], None]
-):
+def reconstruir_camino(came_from: Dict[Nodo, Nodo], actual: Nodo):
+    cerrada: List[Nodo] = []
     while actual in came_from:
+        cerrada.append(actual)
         actual = came_from[actual]
         actual.hacer_camino()
-        dibujar_v()
+    cerrada.reverse()
+
+    print("Lista cerrada: ")
+    for nodo in cerrada:
+        print(f"Nodo:{nodo.col}, {nodo.fila}")
 
 
-def mostrar_mensaje(ventana: pygame.Surface, mensaje: str):
-    fuente = pygame.font.Font(None, 50)
-    texto = fuente.render(mensaje, True, BLANCO)
-    rect_texto = texto.get_rect(center=(ANCHO_VENTANA // 2, ANCHO_VENTANA // 2))
+def main():
+    FILAS = 10
+    grid = Grid(FILAS, ANCHO_VENTANA)
+    run = True
+    algo_count = 0
 
-    pygame.draw.rect(ventana, NEGRO, rect_texto.inflate(20, 20))
-    ventana.blit(texto, rect_texto)
-    pygame.display.update()
+    # Variables para el algoritmo
+    active = False
+    start = None
+    end = None
 
-    # Para que se alcance a ver
-    time.sleep(2)
-
-
-def a_asterisco(
-    inicio: Nodo, fin: Nodo, grid: List[List[Nodo]], dibujar_v: Callable[[], None]
-):
-    # Posición en la cola del nodo, esto es para desempatarlos
     count = 0
 
     # Cola de prioridad
@@ -267,74 +263,92 @@ def a_asterisco(
     came_from: Dict[Nodo, Nodo] = {}
 
     # Inicialización de los costos de g
-    g_score = {nodo: float("inf") for fila in grid for nodo in fila}
+    g_score: Dict[Nodo, float] = {}
 
     # Inicialización de los costos de f
-    f_score = {nodo: float("inf") for fila in grid for nodo in fila}
+    f_score: Dict[Nodo, float] = {}
 
-    # Inicialización del diccionario de nodos
-    open_set_hash = {inicio}
+    open_set_hash: Set[Nodo] = set()
 
-    # Inicialización del primer nodo
-    open_set.put((0, count, inicio))
-    g_score[inicio] = 0
-    f_score[inicio] = heuristica_manhattan(inicio.get_pos(), fin.get_pos())
+    # Mensajes posibles
+    not_found_message = Message(message="No se encontró el camino")
+    found_message = Message(message="Se encontró el camino")
 
-    while not open_set.empty():
+    def iniciar_algo():
+        nonlocal active, start, end, count, open_set, g_score, f_score, open_set_hash, count, algo_count
+        algo_count = 0
+        active = True
+        count = 0
+        # Inicialización de los costos de g
+        g_score = {nodo: float("inf") for fila in grid.nodos for nodo in fila}
 
-        # Obtenemos el nodo actual segun la cola de prioridad
-        current = open_set.get()[2]
+        # Inicialización de los costos de f
+        f_score = {nodo: float("inf") for fila in grid.nodos for nodo in fila}
 
-        # Lo eliminamos del diccionario
-        open_set_hash.remove(current)
+        # Inicialización del diccionario de nodos
+        open_set_hash = {start}
 
-        # Si llegamos al final, reconstruimos el camino
-        if current == fin:
-            fin.hacer_fin()
-            reconstruir_camino(came_from, fin, dibujar_v)
-            inicio.hacer_inicio()
-            mostrar_mensaje(VENTANA, "Se encontró el camino")
-            return True
+        # Inicialización del primer nodo
+        open_set.put((0, count, start))
+        g_score[start] = 0
+        f_score[start] = heuristica_manhattan(start.get_pos(), end.get_pos())
 
-        # Iteramos sobre los vecinos
-        for vecino, costo in current.vecinos:
-            # Nuevo costo de g
-            tentative_g_score = g_score[current] + costo
+    def a_asterisco():
+        nonlocal active, start, end, count, open_set, came_from, g_score, f_score, open_set_hash
+        if not open_set.empty():
 
-            # Si el costo es menor, actualizamos los valores
-            if tentative_g_score < g_score[vecino]:
-                came_from[vecino] = current
-                g_score[vecino] = tentative_g_score
-                f_score[vecino] = g_score[vecino] + heuristica_manhattan(
-                    vecino.get_pos(), fin.get_pos()
-                )
-                if vecino not in open_set_hash:
-                    count += 1
-                    open_set.put((f_score[vecino], count, vecino))
-                    open_set_hash.add(vecino)
-                    vecino.hacer_abierto()
+            # Obtenemos el nodo actual segun la cola de prioridad
+            current = open_set.get()[2]
 
-        # Dibujamos
-        dibujar_v()
+            # Lo eliminamos del diccionario
+            open_set_hash.remove(current)
 
-        # Relentizar la ejecución
-        # time.sleep(0.5)
-        if current != inicio:
-            current.hacer_cerrado()
+            # Si llegamos al final, reconstruimos el camino
+            if current == end:
+                end.hacer_fin()
+                reconstruir_camino(came_from, end)
+                start.hacer_inicio()
+                found_message.show()
+                active = False
+                return
 
-    mostrar_mensaje(VENTANA, "No se encontró el camino")
-    return False
+            # Iteramos sobre los vecinos
+            for vecino, costo in current.vecinos:
+                # Nuevo costo de g
+                tentative_g_score = g_score[current] + costo
 
+                # Si el costo es menor, actualizamos los valores
+                if tentative_g_score < g_score[vecino]:
+                    came_from[vecino] = current
+                    g_score[vecino] = tentative_g_score
+                    f_score[vecino] = g_score[vecino] + heuristica_manhattan(
+                        vecino.get_pos(), end.get_pos()
+                    )
+                    if vecino not in open_set_hash:
+                        count += 1
+                        open_set.put((f_score[vecino], count, vecino))
+                        open_set_hash.add(vecino)
+                        vecino.hacer_abierto()
 
-def main():
-    FILAS = 10
-    grid = Grid(FILAS, ANCHO_VENTANA)
-    start = None
-    end = None
-    run = True
-    not_found_message = Message("No se encontró el camino")
-    found_message = Message("Se encontró el camino")
-    active = False
+            if current != start:
+                current.hacer_cerrado()
+        else:
+            not_found_message.show()
+            active = False
+
+    def reiniciar():
+        nonlocal start, end, not_found_message, found_message, active, g_score, f_score, open_set, open_set_hash, came_from
+        start = None
+        end = None
+        not_found_message.shown = False
+        found_message.shown = False
+        active = False
+        g_score = {}
+        f_score = {}
+        open_set = PriorityQueue()
+        open_set_hash = set()
+        came_from = {}
+        grid.reiniciar()
 
     while run:
         # Capar fps
@@ -382,21 +396,25 @@ def main():
 
                 # Evento para reiniciar
                 if event.key == pygame.K_r:
-                    grid.reiniciar()
-                    start = None
-                    end = None
+                    reiniciar()
 
                 # Evento para iniciar el algoritmo
                 if event.key == pygame.K_SPACE and start and end:
                     grid.inicializar_vecinos()
-                    active = True
+                    iniciar_algo()
 
         # Dibujar todas las cosas
         grid.dibujar(VENTANA)
 
+        # Dibujar mensajes
+        not_found_message.draw(VENTANA)
+        found_message.draw(VENTANA)
+
         # Si se activó el algoritmo
         if active:
-            a_asterisco(start, end, grid.nodos, lambda: pygame.display.update())
+            if algo_count % (FPS / STEPS_PER_SECOND) == 0:
+                a_asterisco()
+            algo_count += 1
 
         pygame.display.update()
 

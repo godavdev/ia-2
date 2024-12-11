@@ -215,7 +215,6 @@ def mostrar_menu():
     global menu_activo, modo_auto, selected_model, datos_modelo
     pantalla.fill(NEGRO)
     has_data = len(datos_modelo) > 0
-    print(has_data)
     txt = (
         "Presiona 'M' para Manual, o 'Q' para Salir"
         if not has_data

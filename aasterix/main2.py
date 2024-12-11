@@ -77,6 +77,8 @@ class Nodo:
         self.color = ROJO
 
     def hacer_abierto(self):
+        if self.color == PURPURA:
+            return
         self.color = VERDE
 
     def hacer_camino(self):

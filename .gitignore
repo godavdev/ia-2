@@ -3,5 +3,6 @@ cnn/data/images
 cnn/data/videos
 cnn/data/old
 cnn/data/downloads
+reforma/data
 yolov8l.pt
 yolov8n.pt

@@ -3,6 +3,7 @@ import time
 from typing import Dict, List
 from ultralytics import YOLO
 import cv2
+import numpy as np
 
 IMAGES_DIR = "cnn/data/downloads/images"
 OUTPUT_DIR = "cnn/data/images"
@@ -20,6 +21,19 @@ print(cars_dict)
 model = YOLO("cnn/data/yolov8l.pt", verbose=False)
 names = model.names
 DIMENSIONS = (80, 80)
+
+
+def rotate_image(image, angle):
+    # Obtener el centro de la imagen
+    center = tuple(np.array(image.shape[1::-1]) / 2)
+    # Crear la matriz de rotación
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+    # Realizar la rotación
+    rotated = cv2.warpAffine(
+        image, rotation_matrix, image.shape[1::-1], flags=cv2.INTER_LINEAR
+    )
+    return rotated
+
 
 for car, images in cars_dict.items():
     print(f"Procesando {car}")
@@ -44,12 +58,23 @@ for car, images in cars_dict.items():
                     continue
                 cropped = frame[y1:y2, x1:x2]
                 center = (w // 2, h // 2)
-                
                 # Normal
                 resized = cv2.resize(cropped, DIMENSIONS, interpolation=cv2.INTER_AREA)
                 cv2.imshow("Cropped", resized)
                 cv2.imwrite(f"cnn/data/images/{car}/{i}.jpg", resized)
                 i += 1
+
+                # # Rotaciones
+                # for angle in range(20, 360, 20):
+                #     rotated = rotate_image(resized, angle)
+                #     rotated_resized = cv2.resize(
+                #         rotated, DIMENSIONS, interpolation=cv2.INTER_AREA
+                #     )
+                #     cv2.imwrite(
+                #         f"cnn/data/images/{car}/{i}.jpg", rotated_resized
+                #     )
+                #     i += 1
+
                 print(f"Teoricamente se han guardado: {i} imagenes")
         cv2.imshow("Frame", frame)
         cv2.waitKey(1)
